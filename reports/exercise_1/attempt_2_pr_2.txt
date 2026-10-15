@@ -1,0 +1,15 @@
+──────────────────────────────────── Exercise 1 — live evidence ────────────────────────────────────
+PR: https://github.com/VinUni-AI20k/PR-Demo/pull/2
+GitHub read mode: anonymous_public_api
+→ fetch_pr
+  ✓ 4 files, head 501f95e
+→ analyze
+→ route
+✓ HUMAN APPROVAL — placeholder, exercise 2 will pause here
+────────────────────────────────────────────── Final ───────────────────────────────────────────────
+confidence = 60%
+action     = pending_human_approval
+reasoning  = The review identifies several critical security issues, particularly around password 
+hashing and token storage, but lacks context on the overall architecture and deployment environment.
+The inline SQL query construction also raises concerns about SQL injection, which needs further 
+investigation. The review is incomplete as it does not cover testing or integration aspects.

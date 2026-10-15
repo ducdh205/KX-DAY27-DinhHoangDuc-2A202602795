@@ -1,0 +1,14 @@
+──────────────────────────────────── Exercise 1 — live evidence ────────────────────────────────────
+PR: https://github.com/VinUni-AI20k/PR-Demo/pull/2
+GitHub read mode: anonymous_public_api
+→ fetch_pr
+  ✓ 4 files, head 501f95e
+→ analyze
+→ route
+✓ HUMAN APPROVAL — placeholder, exercise 2 will pause here
+────────────────────────────────────────────── Final ───────────────────────────────────────────────
+confidence = 60%
+action     = pending_human_approval
+reasoning  = The review identifies several critical security issues, particularly around password 
+handling and token storage. However, the review lacks comprehensive testing context and does not 
+cover all edge cases, leading to moderate confidence in the completeness of the review.

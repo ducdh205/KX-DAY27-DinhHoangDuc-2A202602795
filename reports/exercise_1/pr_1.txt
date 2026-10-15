@@ -1,0 +1,15 @@
+──────────────────────────────────── Exercise 1 — live evidence ────────────────────────────────────
+PR: https://github.com/VinUni-AI20k/PR-Demo/pull/1
+GitHub read mode: authenticated
+→ fetch_pr
+  ✓ 3 files, head 1646156
+→ analyze
+→ route
+✓ HUMAN APPROVAL — placeholder, exercise 2 will pause here
+────────────────────────────────────────────── Final ───────────────────────────────────────────────
+confidence = 65%
+action     = pending_human_approval
+reasoning  = The review identifies several critical areas where validation and error handling are 
+necessary, particularly regarding user input and database interactions. However, the changes are 
+localized to the task management functionality, and the overall architecture appears stable. The 
+lack of tests for the new priority feature and potential migration issues lowers confidence.

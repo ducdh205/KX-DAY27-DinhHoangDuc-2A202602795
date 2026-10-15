@@ -1,0 +1,15 @@
+──────────────────────────────────── Exercise 1 — live evidence ────────────────────────────────────
+PR: https://github.com/VinUni-AI20k/PR-Demo/pull/2
+GitHub read mode: authenticated
+→ fetch_pr
+  ✓ 4 files, head 501f95e
+→ analyze
+→ route
+✓ ESCALATE — placeholder, exercise 3 will ask the reviewer questions
+────────────────────────────────────────────── Final ───────────────────────────────────────────────
+confidence = 55%
+action     = pending_escalation
+reasoning  = The review identifies several critical security issues, particularly around password 
+hashing and SQL injection risks. However, the overall scope of the changes is localized, and the 
+main functionalities can be verified. The lack of tests and the presence of hardcoded values 
+contribute to the moderate confidence level.

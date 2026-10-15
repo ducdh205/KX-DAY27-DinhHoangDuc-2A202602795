@@ -1,0 +1,15 @@
+──────────────────────────────────── Exercise 1 — live evidence ────────────────────────────────────
+PR: https://github.com/VinUni-AI20k/PR-Demo/pull/1
+GitHub read mode: anonymous_public_api
+→ fetch_pr
+  ✓ 3 files, head 1646156
+→ analyze
+→ route
+✓ HUMAN APPROVAL — placeholder, exercise 2 will pause here
+────────────────────────────────────────────── Final ───────────────────────────────────────────────
+confidence = 70%
+action     = pending_human_approval
+reasoning  = The review covers the main changes and potential issues related to the new priority 
+field, but lacks context on how existing data will be handled and whether input validation is 
+sufficient. The review is based solely on the diff provided, which may not capture all edge cases or
+integration points.

@@ -1,0 +1,16 @@
+──────────────────────────────────── Exercise 1 — live evidence ────────────────────────────────────
+PR: https://github.com/VinUni-AI20k/PR-Demo/pull/1
+GitHub read mode: anonymous_public_api
+→ fetch_pr
+  ✓ 3 files, head 1646156
+→ analyze
+→ route
+✓ HUMAN APPROVAL — placeholder, exercise 2 will pause here
+────────────────────────────────────────────── Final ───────────────────────────────────────────────
+confidence = 65%
+action     = pending_human_approval
+reasoning  = The changes introduce a new feature with potential risks related to input validation 
+and database integrity. While the code appears to be functional, there are several areas where input
+validation and error handling are lacking, which could lead to security vulnerabilities or data 
+integrity issues. The review is moderately complete but lacks thorough testing and validation 
+mechanisms.

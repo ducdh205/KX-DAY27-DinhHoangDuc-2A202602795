@@ -1,0 +1,14 @@
+──────────────────────────────────── Exercise 1 — live evidence ────────────────────────────────────
+PR: https://github.com/VinUni-AI20k/PR-Demo/pull/2
+GitHub read mode: anonymous_public_api
+→ fetch_pr
+  ✓ 4 files, head 501f95e
+→ analyze
+→ route
+✓ HUMAN APPROVAL — placeholder, exercise 2 will pause here
+────────────────────────────────────────────── Final ───────────────────────────────────────────────
+confidence = 70%
+action     = pending_human_approval
+reasoning  = The review identifies several critical security issues, particularly around password 
+handling and SQL injection risks. However, without the full context of the application and its 
+architecture, some aspects of user management and session handling may not be fully understood.

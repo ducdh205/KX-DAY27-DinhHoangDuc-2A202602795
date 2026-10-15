@@ -1,0 +1,83 @@
+{
+  "started_at_utc": "2026-10-15T07:21:22.882671+00:00",
+  "pr_url": "https://github.com/VinUni-AI20k/PR-Demo/pull/1",
+  "github_read_mode": "anonymous_public_api",
+  "model": "openai/gpt-4o-mini",
+  "python": "3.12.3",
+  "packages": {
+    "langgraph": "1.2.0",
+    "langchain-openai": "1.2.1",
+    "pydantic": "2.13.4"
+  },
+  "thresholds": {
+    "auto_approve": 0.73,
+    "escalate": 0.58
+  },
+  "source_sha256": {
+    "exercises/exercise_1_confidence.py": "af05e3ffb433d088b9572a824a8a9394847dec6026b992438358b84273cc01a7",
+    "common/schemas.py": "57862b01ef67a78bdb8e3457a7ada608545126af7cd2fcab9388160784b53f65"
+  },
+  "status": "completed",
+  "result": {
+    "pr_url": "https://github.com/VinUni-AI20k/PR-Demo/pull/1",
+    "pr_title": "feat: add priority field to tasks",
+    "pr_diff": "diff --git a/tasktrack/cli.py b/tasktrack/cli.py\nindex 8649551..af7db5e 100644\n--- a/tasktrack/cli.py\n+++ b/tasktrack/cli.py\n@@ -3,12 +3,16 @@\n from .storage import Storage\n \n \n+PRIORITY_LABEL = {0: \" \", 1: \"!\", 2: \"!!\"}\n+\n+\n def main() -> None:\n     parser = argparse.ArgumentParser(prog=\"tasktrack\")\n     sub = parser.add_subparsers(dest=\"cmd\", required=True)\n \n     p_add = sub.add_parser(\"add\", help=\"Add a task\")\n     p_add.add_argument(\"title\")\n+    p_add.add_argument(\"--priority\", type=int, default=0, help=\"0=normal, 1=high, 2=urgent\")\n \n     sub.add_parser(\"list\", help=\"List all tasks\")\n \n@@ -19,12 +23,13 @@ def main() -> None:\n     store = Storage()\n \n     if args.cmd == \"add\":\n-        t = store.add(args.title)\n+        t = store.add(args.title, priority=args.priority)\n         print(f\"[{t.id}] {t.title}\")\n     elif args.cmd == \"list\":\n         for t in store.list():\n             mark = \"x\" if t.done else \" \"\n-            print(f\"[{mark}] {t.id:>3}  {t.title}\")\n+            pr = PRIORITY_LABEL.get(t.priority, \"?\")\n+            print(f\"[{mark}] {pr:>2} {t.id:>3}  {t.title}\")\n     elif args.cmd == \"done\":\n         store.mark_done(args.task_id)\n         print(f\"Marked task {args.task_id} done\")\ndiff --git a/tasktrack/models.py b/tasktrack/models.py\nindex 9fb4701..cce0f4e 100644\n--- a/tasktrack/models.py\n+++ b/tasktrack/models.py\n@@ -6,3 +6,4 @@ class Task:\n     id: int | None\n     title: str\n     done: bool = False\n+    priority: int = 0   # 0 = normal, 1 = high, 2 = urgent\ndiff --git a/tasktrack/storage.py b/tasktrack/storage.py\nindex a1f4f6c..e615a08 100644\n--- a/tasktrack/storage.py\n+++ b/tasktrack/storage.py\n@@ -9,9 +9,10 @@\n \n SCHEMA = \"\"\"\n CREATE TABLE IF NOT EXISTS tasks (\n-    id    INTEGER PRIMARY KEY AUTOINCREMENT,\n-    title TEXT    NOT NULL,\n-    done  INTEGER NOT NULL DEFAULT 0\n+    id       INTEGER PRIMARY KEY AUTOINCREMENT,\n+    title    TEXT    NOT NULL,\n+    done     INTEGER NOT NULL DEFAULT 0,\n+    priority INTEGER NOT NULL DEFAULT 0\n )\n \"\"\"\n \n@@ -21,14 +22,19 @@ def __init__(self, path: Path = DEFAULT_DB) -> None:\n         self.conn = sqlite3.connect(path)\n         self.conn.executescript(SCHEMA)\n \n-    def add(self, title: str) -> Task:\n-        cur = self.conn.execute(\"INSERT INTO tasks (title) VALUES (?)\", (title,))\n+    def add(self, title: str, priority: int = 0) -> Task:\n+        cur = self.conn.execute(\n+            \"INSERT INTO tasks (title, priority) VALUES (?, ?)\",\n+            (title, priority),\n+        )\n         self.conn.commit()\n-        return Task(id=cur.lastrowid, title=title, done=False)\n+        return Task(id=cur.lastrowid, title=title, done=False, priority=priority)\n \n     def list(self) -> list[Task]:\n-        rows = self.conn.execute(\"SELECT id, title, done FROM tasks ORDER BY id\").fetchall()\n-        return [Task(id=r[0], title=r[1], done=bool(r[2])) for r in rows]\n+        rows = self.conn.execute(\n+            \"SELECT id, title, done, priority FROM tasks ORDER BY priority DESC, id\"\n+        ).fetchall()\n+        return [Task(id=r[0], title=r[1], done=bool(r[2]), priority=r[3]) for r in rows]\n \n     def mark_done(self, task_id: int) -> None:\n         self.conn.execute(\"UPDATE tasks SET done = 1 WHERE id = ?\", (task_id,))\n",
+    "pr_files": [
+      "tasktrack/cli.py",
+      "tasktrack/models.py",
+      "tasktrack/storage.py"
+    ],
+    "pr_head_sha": "164615656d47c67b0857daf02fcd412c55333d5d",
+    "analysis": {
+      "summary": "This PR introduces a new 'priority' field to tasks in a task tracking application, allowing users to specify the priority level of tasks when adding them. The changes include updates to the command-line interface, task model, and storage schema to accommodate the new field.",
+      "risk_factors": [
+        "Potential SQL injection if user input is not properly validated before being used in queries.",
+        "Changes to the database schema may require migration scripts to handle existing data.",
+        "The priority field is an integer, but no validation is enforced on its value, which could lead to invalid priority levels being stored."
+      ],
+      "comments": [
+        {
+          "file": "tasktrack/cli.py",
+          "line": 8,
+          "severity": "issue",
+          "body": "The priority argument should have validation to ensure it only accepts values 0, 1, or 2. Consider using a custom action or a choice argument."
+        },
+        {
+          "file": "tasktrack/models.py",
+          "line": 7,
+          "severity": "nit",
+          "body": "Consider adding a docstring to the Task class to explain the purpose of the priority field."
+        },
+        {
+          "file": "tasktrack/storage.py",
+          "line": 12,
+          "severity": "issue",
+          "body": "The SQL schema change does not include a migration strategy for existing databases. Ensure that there is a plan to handle existing tasks without a priority."
+        },
+        {
+          "file": "tasktrack/storage.py",
+          "line": 20,
+          "severity": "issue",
+          "body": "The add method should validate the priority value before inserting it into the database to prevent invalid values."
+        },
+        {
+          "file": "tasktrack/storage.py",
+          "line": 24,
+          "severity": "suggestion",
+          "body": "Consider adding an index on the priority column to improve query performance when listing tasks."
+        }
+      ],
+      "confidence": 0.7,
+      "confidence_reasoning": "The review covers the main changes and potential issues related to the new priority field, but lacks context on how existing data will be handled and whether input validation is sufficient. The review is based solely on the diff provided, which may not capture all edge cases or integration points.",
+      "escalation_questions": [
+        "How will existing tasks be migrated to include a priority value?",
+        "Is there a need for input validation on the priority argument in the CLI?",
+        "What is the expected behavior if a user inputs a priority value outside of the defined range?"
+      ]
+    },
+    "decision": "human_approval",
+    "final_action": "pending_human_approval"
+  },
+  "finished_at_utc": "2026-10-15T07:21:38.466162+00:00",
+  "duration_seconds": 15.584
+}

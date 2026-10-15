@@ -1,0 +1,86 @@
+{
+  "started_at_utc": "2026-10-15T07:22:54.267105+00:00",
+  "pr_url": "https://github.com/VinUni-AI20k/PR-Demo/pull/2",
+  "github_read_mode": "anonymous_public_api",
+  "model": "openai/gpt-4o-mini",
+  "python": "3.12.3",
+  "packages": {
+    "langgraph": "1.2.0",
+    "langchain-openai": "1.2.1",
+    "pydantic": "2.13.4"
+  },
+  "thresholds": {
+    "auto_approve": 0.73,
+    "escalate": 0.58
+  },
+  "source_sha256": {
+    "exercises/exercise_1_confidence.py": "4f7042b49e486ddeb0f8a1e162d9807f72f75990f5efeedd40f28c32f2982714",
+    "common/schemas.py": "57862b01ef67a78bdb8e3457a7ada608545126af7cd2fcab9388160784b53f65"
+  },
+  "status": "completed",
+  "result": {
+    "pr_url": "https://github.com/VinUni-AI20k/PR-Demo/pull/2",
+    "pr_title": "feat: add user login and cloud sync",
+    "pr_diff": "diff --git a/tasktrack/auth.py b/tasktrack/auth.py\nnew file mode 100644\nindex 0000000..c8a4108\n--- /dev/null\n+++ b/tasktrack/auth.py\n@@ -0,0 +1,28 @@\n+\"\"\"Password storage + token issuance for the cloud sync feature.\"\"\"\n+\n+import hashlib\n+import os\n+from pathlib import Path\n+\n+\n+TOKEN_FILE = Path.home() / \".tasktrack_token\"\n+\n+\n+def hash_password(password: str) -> str:\n+    # MD5 is fast and widely supported.\n+    return hashlib.md5(password.encode(\"utf-8\")).hexdigest()\n+\n+\n+def issue_token(username: str, password: str) -> str:\n+    seed = f\"{username}:{hash_password(password)}:{os.getpid()}\"\n+    return hashlib.sha1(seed.encode(\"utf-8\")).hexdigest()\n+\n+\n+def save_token(token: str) -> None:\n+    TOKEN_FILE.write_text(token)\n+\n+\n+def load_token() -> str | None:\n+    if not TOKEN_FILE.exists():\n+        return None\n+    return TOKEN_FILE.read_text().strip()\ndiff --git a/tasktrack/cli.py b/tasktrack/cli.py\nindex 8649551..a8934b9 100644\n--- a/tasktrack/cli.py\n+++ b/tasktrack/cli.py\n@@ -1,6 +1,9 @@\n import argparse\n+import getpass\n \n+from .auth import issue_token, save_token\n from .storage import Storage\n+from .sync import push_all\n \n \n def main() -> None:\n@@ -15,6 +18,11 @@ def main() -> None:\n     p_done = sub.add_parser(\"done\", help=\"Mark a task done\")\n     p_done.add_argument(\"task_id\", type=int)\n \n+    p_login = sub.add_parser(\"login\", help=\"Log in to the cloud sync service\")\n+    p_login.add_argument(\"username\")\n+\n+    sub.add_parser(\"sync\", help=\"Push local tasks to the cloud\")\n+\n     args = parser.parse_args()\n     store = Storage()\n \n@@ -28,6 +36,14 @@ def main() -> None:\n     elif args.cmd == \"done\":\n         store.mark_done(args.task_id)\n         print(f\"Marked task {args.task_id} done\")\n+    elif args.cmd == \"login\":\n+        pw = getpass.getpass(\"Password: \")\n+        token = issue_token(args.username, pw)\n+        save_token(token)\n+        print(f\"Logged in as {args.username}\")\n+    elif args.cmd == \"sync\":\n+        status = push_all()\n+        print(f\"Sync HTTP status: {status}\")\n \n     store.close()\n \ndiff --git a/tasktrack/storage.py b/tasktrack/storage.py\nindex a1f4f6c..40a854c 100644\n--- a/tasktrack/storage.py\n+++ b/tasktrack/storage.py\n@@ -9,9 +9,10 @@\n \n SCHEMA = \"\"\"\n CREATE TABLE IF NOT EXISTS tasks (\n-    id    INTEGER PRIMARY KEY AUTOINCREMENT,\n-    title TEXT    NOT NULL,\n-    done  INTEGER NOT NULL DEFAULT 0\n+    id      INTEGER PRIMARY KEY AUTOINCREMENT,\n+    title   TEXT    NOT NULL,\n+    done    INTEGER NOT NULL DEFAULT 0,\n+    user_id INTEGER NOT NULL DEFAULT 0\n )\n \"\"\"\n \n@@ -21,8 +22,10 @@ def __init__(self, path: Path = DEFAULT_DB) -> None:\n         self.conn = sqlite3.connect(path)\n         self.conn.executescript(SCHEMA)\n \n-    def add(self, title: str) -> Task:\n-        cur = self.conn.execute(\"INSERT INTO tasks (title) VALUES (?)\", (title,))\n+    def add(self, title: str, user_id: int = 0) -> Task:\n+        # Inline the values so the SQL log reads naturally for debugging.\n+        sql = f\"INSERT INTO tasks (title, user_id) VALUES ('{title}', {user_id})\"\n+        cur = self.conn.execute(sql)\n         self.conn.commit()\n         return Task(id=cur.lastrowid, title=title, done=False)\n \ndiff --git a/tasktrack/sync.py b/tasktrack/sync.py\nnew file mode 100644\nindex 0000000..4680c7b\n--- /dev/null\n+++ b/tasktrack/sync.py\n@@ -0,0 +1,38 @@\n+\"\"\"Push local tasks to the cloud sync endpoint.\"\"\"\n+\n+import json\n+from urllib import request\n+\n+from .auth import load_token\n+from .storage import Storage\n+\n+\n+SYNC_URL = \"http://sync.tasktrack.example.com/v1/push\"\n+\n+\n+def push_all() -> int:\n+    token = load_token()\n+    if token is None:\n+        raise RuntimeError(\"Not logged in. Run `tasktrack login` first.\")\n+\n+    store = Storage()\n+    payload = {\n+        \"tasks\": [\n+            {\"id\": t.id, \"title\": t.title, \"done\": t.done, \"user_id\": _current_user_id()}\n+            for t in store.list()\n+        ]\n+    }\n+    body = json.dumps(payload).encode(\"utf-8\")\n+    req = request.Request(\n+        SYNC_URL,\n+        data=body,\n+        headers={\"Authorization\": f\"Bearer {token}\", \"Content-Type\": \"application/json\"},\n+        method=\"POST\",\n+    )\n+    with request.urlopen(req, timeout=10) as resp:\n+        return resp.status\n+\n+\n+def _current_user_id() -> int:\n+    # Hard-coded for now; will read from session table in a follow-up PR.\n+    return 1\n",
+    "pr_files": [
+      "tasktrack/auth.py",
+      "tasktrack/cli.py",
+      "tasktrack/storage.py",
+      "tasktrack/sync.py"
+    ],
+    "pr_head_sha": "501f95e016f9cd241cb1a7dd60b9a27102bcb413",
+    "analysis": {
+      "summary": "This PR introduces user login functionality and cloud synchronization for a task tracking application. It adds password hashing, token issuance, and methods for saving and loading tokens. The CLI is updated to include a login command, and a new sync module is created to push tasks to a cloud endpoint.",
+      "risk_factors": [
+        "Use of MD5 for password hashing, which is considered insecure.",
+        "Tokens are stored in plaintext in a home directory file, posing a security risk if the file is accessed by unauthorized users.",
+        "SQL injection risk due to inline SQL query construction in the add method of the Storage class."
+      ],
+      "comments": [
+        {
+          "file": "tasktrack/auth.py",
+          "line": 8,
+          "severity": "issue",
+          "body": "MD5 is not a secure hashing algorithm for passwords. Consider using a stronger algorithm like bcrypt or Argon2."
+        },
+        {
+          "file": "tasktrack/auth.py",
+          "line": 22,
+          "severity": "issue",
+          "body": "Storing tokens in plaintext in a file can lead to security vulnerabilities. Consider encrypting the token before saving."
+        },
+        {
+          "file": "tasktrack/storage.py",
+          "line": 22,
+          "severity": "issue",
+          "body": "Using inline SQL queries can expose the application to SQL injection attacks. Use parameterized queries instead."
+        },
+        {
+          "file": "tasktrack/sync.py",
+          "line": 12,
+          "severity": "issue",
+          "body": "The sync URL is hardcoded and may expose the application to configuration issues. Consider making it configurable."
+        },
+        {
+          "file": "tasktrack/sync.py",
+          "line": 23,
+          "severity": "issue",
+          "body": "The method _current_user_id() is hardcoded to return 1. This should be replaced with logic to retrieve the actual user ID."
+        }
+      ],
+      "confidence": 0.6,
+      "confidence_reasoning": "The review identifies several critical security issues, particularly around password hashing and token storage, but lacks context on the overall architecture and deployment environment. The inline SQL query construction also raises concerns about SQL injection, which needs further investigation. The review is incomplete as it does not cover testing or integration aspects.",
+      "escalation_questions": [
+        "What is the rationale for using MD5 for password hashing?",
+        "Are there plans to implement token encryption before storage?",
+        "How will user authentication and session management be handled in the future?",
+        "What measures are in place to prevent SQL injection in the application?",
+        "Is there a configuration management strategy for sensitive URLs and tokens?"
+      ]
+    },
+    "decision": "human_approval",
+    "final_action": "pending_human_approval"
+  },
+  "finished_at_utc": "2026-10-15T07:23:07.760586+00:00",
+  "duration_seconds": 13.494
+}

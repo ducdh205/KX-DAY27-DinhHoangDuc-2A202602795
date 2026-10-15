@@ -1,0 +1,16 @@
+──────────────────────────────────── Exercise 1 — live evidence ────────────────────────────────────
+PR: https://github.com/VinUni-AI20k/PR-Demo/pull/1
+GitHub read mode: anonymous_public_api
+→ fetch_pr
+  ✓ 3 files, head 1646156
+→ analyze
+→ route
+✓ HUMAN APPROVAL — placeholder, exercise 2 will pause here
+────────────────────────────────────────────── Final ───────────────────────────────────────────────
+confidence = 60%
+action     = pending_human_approval
+reasoning  = The review identifies several key areas of concern, particularly around input 
+validation and database schema changes. However, without additional context on how the application 
+is deployed or existing data management practices, there are uncertainties regarding the impact of 
+these changes. The review is moderately complete but lacks thorough testing coverage for the new 
+functionality.
